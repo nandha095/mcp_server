@@ -1,2 +1,5 @@
-gradio[mcp]
-textblob
+mcp
+playwright
+openpyxl
+pypdf
+python-docx
