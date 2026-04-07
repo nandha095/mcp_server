@@ -18,7 +18,7 @@ from mcp.server.models import InitializationOptions
 from openpyxl import Workbook, load_workbook
 from playwright.async_api import BrowserContext, Page, TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
-print("Starting LinkedIn Job Apply Agent server...")
+
 
 APP_NAME = "linkedin-job-apply-agent"
 APP_VERSION = "1.1.0"
