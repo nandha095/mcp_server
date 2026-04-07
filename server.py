@@ -29,6 +29,7 @@ DEFAULT_HEADLESS = os.environ.get("LINKEDIN_HEADLESS", "false").lower() == "true
 # FIX 4: Increased slow_mo from 50 to 200 to reduce bot detection
 DEFAULT_SLOW_MO_MS = int(os.environ.get("LINKEDIN_SLOWMO_MS", "200"))
 
+
 # Enhanced anti-detection settings
 DEFAULT_ENHANCED_DELAYS = True
 DEFAULT_RANDOM_VIEWPORT = True
