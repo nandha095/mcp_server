@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,11 @@ DEFAULT_HEADLESS = os.environ.get("LINKEDIN_HEADLESS", "false").lower() == "true
 
 # FIX 4: Increased slow_mo from 50 to 200 to reduce bot detection
 DEFAULT_SLOW_MO_MS = int(os.environ.get("LINKEDIN_SLOWMO_MS", "200"))
+
+# Enhanced anti-detection settings
+DEFAULT_ENHANCED_DELAYS = True
+DEFAULT_RANDOM_VIEWPORT = True
+DEFAULT_RANDOM_USER_AGENT = True
 
 server = Server(APP_NAME)
 
@@ -168,23 +174,109 @@ async def _human_pause(min_s: float = 0.8, max_s: float = 1.8) -> None:
     await asyncio.sleep(random.uniform(min_s, max_s))
 
 
+def _get_random_user_agent() -> str:
+    """Generate a random Chrome user agent to avoid detection."""
+    chrome_versions = [
+        "124.0.0.0", "123.0.0.0", "122.0.0.0", "121.0.0.0", "120.0.0.0",
+        "119.0.0.0", "118.0.0.0", "117.0.0.0", "116.0.0.0", "115.0.0.0"
+    ]
+    chrome_version = random.choice(chrome_versions)
+    windows_versions = [
+        "Windows NT 10.0; Win64; x64",
+        "Windows NT 10.0",
+        "Windows NT 6.3; Win64; x64",
+        "Windows NT 6.1; Win64; x64"
+    ]
+    windows_version = random.choice(windows_versions)
+    
+    return f"Mozilla/5.0 ({windows_version}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome_version} Safari/537.36"
+
+
+def _get_random_viewport() -> Dict[str, int]:
+    """Generate a random viewport size to appear more human-like."""
+    viewports = [
+        {"width": 1920, "height": 1080},
+        {"width": 1366, "height": 768},
+        {"width": 1536, "height": 864},
+        {"width": 1440, "height": 900},
+        {"width": 1280, "height": 720},
+        {"width": 1600, "height": 900},
+        {"width": 1280, "height": 800},
+        {"width": 1024, "height": 768},
+    ]
+    return random.choice(viewports)
+
+
+async def _random_mouse_movement(page: Page) -> None:
+    """Simulate random mouse movements to appear more human-like."""
+    try:
+        # Get viewport dimensions
+        viewport = page.viewport_size
+        if not viewport:
+            return
+            
+        width, height = viewport["width"], viewport["height"]
+        
+        # Make 3-5 random mouse movements
+        for _ in range(random.randint(3, 5)):
+            x = random.randint(100, width - 100)
+            y = random.randint(100, height - 100)
+            
+            # Move mouse to random position with human-like speed
+            await page.mouse.move(x, y)
+            await asyncio.sleep(random.uniform(0.1, 0.3))
+            
+            # Occasionally click to simulate interaction
+            if random.random() < 0.3:
+                await page.mouse.click(x, y)
+                await asyncio.sleep(random.uniform(0.2, 0.5))
+    except Exception:
+        pass  # Ignore mouse movement errors
+
+
+async def _enhanced_delays() -> None:
+    """Enhanced human-like delays with more variation."""
+    if DEFAULT_ENHANCED_DELAYS:
+        # Base delay with more variation
+        base_delay = random.uniform(1.5, 3.5)
+        # Add random micro-delays
+        micro_delays = [random.uniform(0.1, 0.5) for _ in range(random.randint(2, 4))]
+        
+        await asyncio.sleep(base_delay)
+        for delay in micro_delays:
+            await asyncio.sleep(delay)
+    else:
+        await _human_pause(0.8, 1.8)
+
+
 async def _launch_context(user_data_dir: Optional[str] = None) -> BrowserContext:
     playwright = await async_playwright().start()
     profile_dir = user_data_dir or DEFAULT_USER_DATA_DIR
+    
+    # Enhanced anti-detection: Use randomized settings
+    viewport = _get_random_viewport() if DEFAULT_RANDOM_VIEWPORT else {"width": 1440, "height": 900}
+    user_agent = _get_random_user_agent() if DEFAULT_RANDOM_USER_AGENT else (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+    
     context = await playwright.chromium.launch_persistent_context(
         user_data_dir=profile_dir,
         channel="chrome",
         headless=DEFAULT_HEADLESS,
         slow_mo=DEFAULT_SLOW_MO_MS,
-        viewport={"width": 1440, "height": 900},
-        # FIX 4: Add user agent to reduce bot detection
-        user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
+        viewport=viewport,
+        user_agent=user_agent,
     )
     context._linked_playwright = playwright
+    
+    # Enhanced anti-detection: Add random mouse movements and delays after launch
+    if context.pages:
+        page = context.pages[0]
+        await _random_mouse_movement(page)
+        await _enhanced_delays()
+    
     return context
 
 
