@@ -1424,6 +1424,8 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextCont
                 candidate_profile=candidate_profile if isinstance(candidate_profile, dict) else None,
             )
 
+            print(f"Starting {'enhanced ' if name == 'enhanced_easy_apply' else ''}Easy Apply flow for {job_url}")
+
             result = await _run_easy_apply_flow(
                 page=page,
                 job_url=job_url,
